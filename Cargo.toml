@@ -1,0 +1,29 @@
+[package]
+name = "static-config"
+version = "0.0.1"
+authors = ["Keunhong Lee <dlrmsghd@gmail.com>", "ANLAB Support <support@an.kaist.ac.kr>"]
+edition = "2018"
+license = "MIT"
+publish = false
+description = """
+Read config statically via build script.
+"""
+categories = ["rust-patterns", "development-tools"]
+keywords = ["static", "config", "toml"]
+documentation = "https://github.com/ANLAB-KAIST/rust-static-config"
+homepage = "https://github.com/ANLAB-KAIST/rust-static-config"
+repository = "https://github.com/ANLAB-KAIST/rust-static-config"
+
+[build-dependencies]
+num_cpus="^1.0"
+toml = "^0.5"
+
+[dev-dependencies]
+num_cpus="^1.0"
+
+[dependencies]
+
+[lib]
+name = "static_config"
+
+[features]
