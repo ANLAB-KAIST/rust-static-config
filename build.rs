@@ -6,6 +6,10 @@ use std::fs::*;
 use std::io::*;
 use std::path::*;
 
+/// Extract CPU count.
+///
+/// 1. If `SYSTEM_CPU_COUNT` env is set, use this value.
+/// 2. Else, measure CPU count from `num_cpus` crate.
 fn cpu_count(out_path: &PathBuf) {
     let cpu_count = std::env::var("SYSTEM_CPU_COUNT")
         .map(|cpu_count_string| -> usize { cpu_count_string.parse().unwrap_or(num_cpus::get()) })
@@ -19,6 +23,10 @@ fn cpu_count(out_path: &PathBuf) {
         .ok();
 }
 
+/// Root crate dir is not given as cargo env.
+/// (https://doc.rust-lang.org/cargo/reference/environment-variables.html)
+///
+/// This function finds crate root from `OUT_DIR` cargo env.
 fn get_root_dir() -> PathBuf {
     let out_dir = env::var("OUT_DIR").unwrap();
     let mut out_dir = Path::new(&out_dir);
@@ -36,6 +44,7 @@ fn get_root_dir() -> PathBuf {
     return out_dir.to_path_buf();
 }
 
+/// Read `static_config.toml` and generate embedded source file.
 fn static_config(project_path: &PathBuf, cargo_root_path: &PathBuf, out_path: &PathBuf) {
     let config_path = std::env::var("STATIC_TOML_PATH")
         .map(PathBuf::from)
