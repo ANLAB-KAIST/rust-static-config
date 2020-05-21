@@ -1,4 +1,3 @@
-use serde::Deserialize;
 use std::collections::LinkedList;
 use std::convert::TryFrom;
 use std::env;
@@ -29,24 +28,20 @@ fn cpu_count(out_path: &PathBuf) {
 /// parent crate.  Thus, we try to find the root directory by tracking parent directories from
 /// `OUT_DIR` which contains `target` directory as its child.
 fn get_cargo_workspace() -> PathBuf {
-    let cargo_bin = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
-    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR")
-        .map(PathBuf::from)
-        .unwrap();
+    let out_dir = env::var("OUT_DIR").unwrap();
+    let mut out_dir = Path::new(&out_dir);
+    assert!(out_dir.is_dir());
+    loop {
+        let is_end = out_dir.file_name().unwrap() == "target";
 
-    #[derive(Deserialize)]
-    struct Manifest {
-        workspace_root: String,
+        out_dir = Path::new(out_dir.parent().unwrap());
+
+        if is_end {
+            break;
+        }
     }
-    let output = std::process::Command::new(cargo_bin)
-        .arg("metadata")
-        .arg("--format-version=1")
-        .current_dir(manifest_dir)
-        .output()
-        .unwrap();
 
-    let manifest: Manifest = serde_json::from_slice(&output.stdout).unwrap();
-    PathBuf::from(manifest.workspace_root)
+    out_dir.to_path_buf()
 }
 
 /// Read `static_config.toml` and generate embedded source file.
