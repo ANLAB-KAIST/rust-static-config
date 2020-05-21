@@ -1,0 +1,18 @@
+[package]
+name = "test_lib_link"
+version = "0.0.1"
+authors = ["Keunhong Lee <dlrmsghd@gmail.com>", "ANLAB <support@an.kaist.ac.kr>"]
+edition = "2018"
+license = "MIT"
+publish = false
+description = """
+Test whether `static-config` works.
+"""
+
+[dependencies]
+static-config = { path = "../../" }
+
+[lib]
+name = "test_lib_link"
+
+[features]
