@@ -14,11 +14,7 @@ use toml;
 /// 1. If `SYSTEM_CPU_COUNT` env is set, use this value.
 /// 2. Else, measure CPU count from `num_cpus` crate.
 fn cpu_count(out_path: &PathBuf) {
-    let cpu_count = std::env::var("SYSTEM_CPU_COUNT")
-        .map(|cpu_count_string| -> usize { cpu_count_string.parse().unwrap_or(num_cpus::get()) })
-        .unwrap_or(num_cpus::get());
-    println!("cargo:rerun-if-env-changed=SYSTEM_CPU_COUNT");
-
+    let cpu_count = num_cpus::get();
     let mut target = File::create(out_path.join("cpu_count.rs")).unwrap();
 
     target
