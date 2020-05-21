@@ -1,6 +1,4 @@
 use etrace::some_or;
-use serde::Deserialize;
-use serde_json;
 use std::collections::LinkedList;
 use std::convert::TryFrom;
 use std::env;
@@ -22,27 +20,30 @@ fn cpu_count(out_path: &PathBuf) {
 /// Root crate dir is not given as cargo env.
 /// (https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-crates)
 ///
-/// Related issue: https://github.com/rust-lang/cargo/issues/3946
-/// This function is modified from https://github.com/mitsuhiko/insta/blob/b113499249584cb650150d2d01ed96ee66db6b30/src/runtime.rs#L67-L88
+/// Related issue: https://github.com/rust-lang/cargo/issues/3946 This function is modified from
+/// https://github.com/mitsuhiko/insta/blob/b113499249584cb650150d2d01ed96ee66db6b30/src/runtime.rs#L67-L88
+///
+/// However, this cannot capture the root directory when this library is called as an external
+/// library.
+///
+/// Even when a crate is built as an external library, it shares the same `target` directory as its
+/// parent crate.  Thus, we try to find the root directory by tracking parent directories from
+/// `OUT_DIR` which contains `target` directory as its child.
 fn get_cargo_workspace() -> PathBuf {
-    let cargo_bin = std::env::var("CARGO").unwrap_or("cargo".to_string());
-    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR")
-        .map(PathBuf::from)
-        .unwrap();
+    let out_dir = env::var("OUT_DIR").unwrap();
+    let mut out_dir = Path::new(&out_dir);
+    assert!(out_dir.is_dir());
+    loop {
+        let is_end = out_dir.file_name().unwrap() == "target";
 
-    #[derive(Deserialize)]
-    struct Manifest {
-        workspace_root: String,
+        out_dir = Path::new(out_dir.parent().unwrap());
+
+        if is_end {
+            break;
+        }
     }
-    let output = std::process::Command::new(cargo_bin)
-        .arg("metadata")
-        .arg("--format-version=1")
-        .current_dir(manifest_dir)
-        .output()
-        .unwrap();
 
-    let manifest: Manifest = serde_json::from_slice(&output.stdout).unwrap();
-    return PathBuf::from(manifest.workspace_root);
+    return out_dir.to_path_buf();
 }
 
 /// Read `static_config.toml` and generate embedded source file.
