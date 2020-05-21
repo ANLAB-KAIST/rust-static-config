@@ -1,10 +1,13 @@
-extern crate toml;
+use etrace::some_or;
+use serde::Deserialize;
+use serde_json;
 use std::collections::LinkedList;
 use std::convert::TryFrom;
 use std::env;
 use std::fs::*;
 use std::io::*;
 use std::path::*;
+use toml;
 
 /// Extract CPU count.
 ///
@@ -24,24 +27,29 @@ fn cpu_count(out_path: &PathBuf) {
 }
 
 /// Root crate dir is not given as cargo env.
-/// (https://doc.rust-lang.org/cargo/reference/environment-variables.html)
+/// (https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-crates)
 ///
-/// This function finds crate root from `OUT_DIR` cargo env.
-fn get_root_dir() -> PathBuf {
-    let out_dir = env::var("OUT_DIR").unwrap();
-    let mut out_dir = Path::new(&out_dir);
-    assert!(out_dir.is_dir());
-    loop {
-        let is_end = out_dir.file_name().unwrap() == "target";
+/// Related issue: https://github.com/rust-lang/cargo/issues/3946
+/// This function is modified from https://github.com/mitsuhiko/insta/blob/b113499249584cb650150d2d01ed96ee66db6b30/src/runtime.rs#L67-L88
+fn get_cargo_workspace() -> PathBuf {
+    let cargo_bin = std::env::var("CARGO").unwrap_or("cargo".to_string());
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR")
+        .map(PathBuf::from)
+        .unwrap();
 
-        out_dir = Path::new(out_dir.parent().unwrap());
-
-        if is_end {
-            break;
-        }
+    #[derive(Deserialize)]
+    struct Manifest {
+        workspace_root: String,
     }
+    let output = std::process::Command::new(cargo_bin)
+        .arg("metadata")
+        .arg("--format-version=1")
+        .current_dir(manifest_dir)
+        .output()
+        .unwrap();
 
-    return out_dir.to_path_buf();
+    let manifest: Manifest = serde_json::from_slice(&output.stdout).unwrap();
+    return PathBuf::from(manifest.workspace_root);
 }
 
 /// Read `static_config.toml` and generate embedded source file.
@@ -75,14 +83,7 @@ fn static_config(project_path: &PathBuf, cargo_root_path: &PathBuf, out_path: &P
         let mut queue = LinkedList::new();
         queue.push_back((String::from(""), config));
         loop {
-            let current;
-            let prefix;
-            if let Some((_prefix, _current)) = queue.pop_front() {
-                current = _current;
-                prefix = _prefix;
-            } else {
-                break;
-            }
+            let (prefix, current) = some_or!(queue.pop_front(), break);
 
             match current {
                 toml::Value::String(val) => {
@@ -177,7 +178,7 @@ fn static_config(project_path: &PathBuf, cargo_root_path: &PathBuf, out_path: &P
 
 fn main() {
     let project_path = PathBuf::from(".").canonicalize().unwrap();
-    let cargo_root_path = get_root_dir();
+    let cargo_root_path = get_cargo_workspace();
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap())
         .canonicalize()
         .unwrap();
