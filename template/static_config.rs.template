@@ -1,0 +1,96 @@
+use std::convert::TryInto;
+
+#[derive(Debug)]
+pub enum ParamType {
+    BOOL(bool),
+    I8(i8),
+    I16(i16),
+    I32(i32),
+    I64(i64),
+    I128(i128),
+    U8(u8),
+    U16(u16),
+    U32(u32),
+    U64(u64),
+    U128(u128),
+    STRING(&'static str),
+    FLOAT(f64),
+    INVALID,
+}
+
+macro_rules! impl_into_int {
+    ($type: ty) => {
+        impl TryInto<$type> for ParamType {
+            type Error = &'static str;
+            #[inline]
+            fn try_into(self) -> Result<$type, Self::Error> {
+                match self {
+                    ParamType::I8(val) => val.try_into().map_err(|_| "Conversion failed"),
+                    ParamType::I16(val) => val.try_into().map_err(|_| "Conversion failed"),
+                    ParamType::I32(val) => val.try_into().map_err(|_| "Conversion failed"),
+                    ParamType::I64(val) => val.try_into().map_err(|_| "Conversion failed"),
+                    ParamType::I128(val) => val.try_into().map_err(|_| "Conversion failed"),
+                    ParamType::U8(val) => val.try_into().map_err(|_| "Conversion failed"),
+                    ParamType::U16(val) => val.try_into().map_err(|_| "Conversion failed"),
+                    ParamType::U32(val) => val.try_into().map_err(|_| "Conversion failed"),
+                    ParamType::U64(val) => val.try_into().map_err(|_| "Conversion failed"),
+                    ParamType::U128(val) => val.try_into().map_err(|_| "Conversion failed"),
+                    _ => Err("Invalid config type"),
+                }
+            }
+        }
+    };
+}
+
+macro_rules! impl_into {
+    ($name: ident, $type: ty) => {
+        impl TryInto<$type> for ParamType {
+            type Error = &'static str;
+            #[inline]
+            fn try_into(self) -> Result<$type, Self::Error> {
+                match self {
+                    ParamType::$name(val) => Ok(val),
+                    _ => Err("Invalid config type"),
+                }
+            }
+        }
+    };
+}
+
+impl_into_int!(i8);
+impl_into_int!(i16);
+impl_into_int!(i32);
+impl_into_int!(i64);
+impl_into_int!(i128);
+impl_into_int!(u8);
+impl_into_int!(u16);
+impl_into_int!(u32);
+impl_into_int!(u64);
+impl_into_int!(u128);
+impl_into_int!(usize);
+impl_into_int!(isize);
+impl_into!(BOOL, bool);
+impl_into!(STRING, &'static str);
+impl_into!(FLOAT, f64);
+
+/// Try find config.
+///
+/// The values are in dynamic enum types, however, try_into on these types are zero-cost
+#[inline]
+pub fn config(key: &'static str) -> ParamType {
+    match key {
+%%MATCH_STRING%%
+_ => ParamType::INVALID,
+    }
+}
+
+/// Template structure for const usizes
+pub struct ConstUSize {
+%%USIZE_DEF%%
+}
+
+/// const usize values are treated specially
+///
+/// e.g. fixed size array lengths
+pub const CONST_USIZE: ConstUSize = ConstUSize {%%USIZE_VAL%%
+};
