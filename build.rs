@@ -50,9 +50,7 @@ fn get_cargo_workspace() -> PathBuf {
 
 /// Read `static_config.toml` and generate embedded source file.
 fn static_config(project_path: &PathBuf, cargo_root_path: &PathBuf, out_path: &PathBuf) {
-    let config_path = std::env::var("STATIC_TOML_PATH")
-        .map(PathBuf::from)
-        .unwrap_or(cargo_root_path.join("static_config.toml"));
+    let config_path = cargo_root_path.join("static_config.toml");
 
     let mut usize_def_string = String::new();
     let mut usize_val_string = String::new();
