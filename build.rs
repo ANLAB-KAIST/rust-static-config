@@ -1,13 +1,10 @@
-use etrace::some_or;
 use serde::Deserialize;
-use serde_json;
 use std::collections::LinkedList;
 use std::convert::TryFrom;
 use std::env;
 use std::fs::*;
 use std::io::*;
 use std::path::*;
-use toml;
 
 /// Extract CPU count from `num_cpus` crate.
 fn cpu_count(out_path: &PathBuf) {
@@ -32,7 +29,7 @@ fn cpu_count(out_path: &PathBuf) {
 /// parent crate.  Thus, we try to find the root directory by tracking parent directories from
 /// `OUT_DIR` which contains `target` directory as its child.
 fn get_cargo_workspace() -> PathBuf {
-    let cargo_bin = std::env::var("CARGO").unwrap_or("cargo".to_string());
+    let cargo_bin = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
     let manifest_dir = std::env::var("CARGO_MANIFEST_DIR")
         .map(PathBuf::from)
         .unwrap();
@@ -49,7 +46,7 @@ fn get_cargo_workspace() -> PathBuf {
         .unwrap();
 
     let manifest: Manifest = serde_json::from_slice(&output.stdout).unwrap();
-    return PathBuf::from(manifest.workspace_root);
+    PathBuf::from(manifest.workspace_root)
 }
 
 /// Read `static_config.toml` and generate embedded source file.
@@ -80,9 +77,7 @@ fn static_config(project_path: &PathBuf, cargo_root_path: &PathBuf, out_path: &P
 
         let mut queue = LinkedList::new();
         queue.push_back((String::from(""), config));
-        loop {
-            let (prefix, current) = some_or!(queue.pop_front(), break);
-
+        while let Some((prefix, current)) = queue.pop_front() {
             match current {
                 toml::Value::String(val) => {
                     match_string += &format!(
@@ -92,50 +87,50 @@ fn static_config(project_path: &PathBuf, cargo_root_path: &PathBuf, out_path: &P
                     );
                 }
                 toml::Value::Integer(val) => loop {
-                    if let Some(target) = usize::try_from(val).ok() {
+                    if let Ok(target) = usize::try_from(val) {
                         let const_name = prefix.replace(".", "_").replace(" ", "_").to_uppercase();
                         usize_def_string += &format!("\npub {}: usize,", const_name);
                         usize_val_string += &format!("\n{}: {},", const_name, target);
                     }
 
-                    if let Some(target) = u8::try_from(val).ok() {
+                    if let Ok(target) = u8::try_from(val) {
                         match_string += &format!("\n\"{}\" => ParamType::U8({}),", prefix, target);
                         break;
                     }
-                    if let Some(target) = u16::try_from(val).ok() {
+                    if let Ok(target) = u16::try_from(val) {
                         match_string += &format!("\n\"{}\" => ParamType::U16({}),", prefix, target);
                         break;
                     }
-                    if let Some(target) = u32::try_from(val).ok() {
+                    if let Ok(target) = u32::try_from(val) {
                         match_string += &format!("\n\"{}\" => ParamType::U32({}),", prefix, target);
                         break;
                     }
-                    if let Some(target) = u64::try_from(val).ok() {
+                    if let Ok(target) = u64::try_from(val) {
                         match_string += &format!("\n\"{}\" => ParamType::U64({}),", prefix, target);
                         break;
                     }
-                    if let Some(target) = u128::try_from(val).ok() {
+                    if let Ok(target) = u128::try_from(val) {
                         match_string +=
                             &format!("\n\"{}\" => ParamType::U128({}),", prefix, target);
                         break;
                     }
-                    if let Some(target) = i8::try_from(val).ok() {
+                    if let Ok(target) = i8::try_from(val) {
                         match_string += &format!("\n\"{}\" => ParamType::I8({}),", prefix, target);
                         break;
                     }
-                    if let Some(target) = i16::try_from(val).ok() {
+                    if let Ok(target) = i16::try_from(val) {
                         match_string += &format!("\n\"{}\" => ParamType::I16({}),", prefix, target);
                         break;
                     }
-                    if let Some(target) = i32::try_from(val).ok() {
+                    if let Ok(target) = i32::try_from(val) {
                         match_string += &format!("\n\"{}\" => ParamType::I32({}),", prefix, target);
                         break;
                     }
-                    if let Some(target) = i64::try_from(val).ok() {
+                    if let Ok(target) = i64::try_from(val) {
                         match_string += &format!("\n\"{}\" => ParamType::I64({}),", prefix, target);
                         break;
                     }
-                    if let Some(target) = i128::try_from(val).ok() {
+                    if let Ok(target) = i128::try_from(val) {
                         match_string +=
                             &format!("\n\"{}\" => ParamType::I128({}),", prefix, target);
                         break;
@@ -154,7 +149,7 @@ fn static_config(project_path: &PathBuf, cargo_root_path: &PathBuf, out_path: &P
                 }
                 toml::Value::Table(val) => {
                     for (k, v) in val {
-                        let new_prefix = if prefix.len() == 0 {
+                        let new_prefix = if prefix.is_empty() {
                             k
                         } else {
                             format!("{}.{}", prefix, k)
