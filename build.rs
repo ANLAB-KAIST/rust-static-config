@@ -9,10 +9,7 @@ use std::io::*;
 use std::path::*;
 use toml;
 
-/// Extract CPU count.
-///
-/// 1. If `SYSTEM_CPU_COUNT` env is set, use this value.
-/// 2. Else, measure CPU count from `num_cpus` crate.
+/// Extract CPU count from `num_cpus` crate.
 fn cpu_count(out_path: &PathBuf) {
     let cpu_count = num_cpus::get();
     let mut target = File::create(out_path.join("cpu_count.rs")).unwrap();
