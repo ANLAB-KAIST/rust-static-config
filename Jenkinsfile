@@ -28,6 +28,15 @@ pipeline {
             steps {
                 sh 'cargo test -- --nocapture --test-threads=1'
                 sh 'cargo test --release -- --nocapture --test-threads=1'
+                dir("test_workspace") {
+                    sh "pwd"
+                    sh 'cargo fmt --all -- --check'
+                    sh 'cargo clippy -- -D warnings'
+                    sh 'cargo build'
+                    sh 'cargo build --release'
+                    sh 'cargo test -- --nocapture --test-threads=1'
+                    sh 'cargo test --release -- --nocapture --test-threads=1'
+                }
             }
         }
     }
